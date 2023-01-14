@@ -19,3 +19,5 @@ sha2 = "0.9.8"
 # standard crate data is left out
 [dev-dependencies]
 rayon = "1.5.1"
+hex = "0.4.3"
+tiny-keccak = "1.5.0"

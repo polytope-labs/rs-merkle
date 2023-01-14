@@ -132,7 +132,7 @@ impl<T: Hasher> MerkleTree<T> {
     fn helper_nodes(&self, leaf_indices: &[usize]) -> Vec<T::Hash> {
         let mut helper_nodes = Vec::<T::Hash>::new();
 
-        for layer in self.helper_node_tuples(leaf_indices) {
+        for layer in self.proof_2d(leaf_indices) {
             for (_index, hash) in layer {
                 helper_nodes.push(hash)
             }
@@ -143,7 +143,7 @@ impl<T: Hasher> MerkleTree<T> {
 
     /// Gets all helper nodes required to build a partial merkle tree for the given indices,
     /// cloning all required hashes into the resulting vector.
-    fn helper_node_tuples(&self, leaf_indices: &[usize]) -> Vec<Vec<(usize, T::Hash)>> {
+    pub fn proof_2d(&self, leaf_indices: &[usize]) -> Vec<Vec<(usize, T::Hash)>> {
         let mut current_layer_indices = leaf_indices.to_vec();
         let mut helper_nodes: Vec<Vec<(usize, T::Hash)>> = Vec::new();
 
@@ -159,6 +159,8 @@ impl<T: Hasher> MerkleTree<T> {
                 }
             }
 
+            // sort the layers by their indices
+            helpers_layer.sort_by(|(a_i, _), (b_i, _)| a_i.cmp(b_i));
             helper_nodes.push(helpers_layer);
             current_layer_indices = indices::parent_indices(&current_layer_indices);
         }
@@ -552,7 +554,7 @@ impl<T: Hasher> MerkleTree<T> {
             .cloned()
             .zip(self.uncommitted_leaves.iter().cloned())
             .collect();
-        let mut partial_tree_tuples = self.helper_node_tuples(&shadow_indices);
+        let mut partial_tree_tuples = self.proof_2d(&shadow_indices);
 
         // Figuring what tree height would be if we've committed the changes
         let leaves_in_new_tree = self.leaves_len() + self.uncommitted_leaves.len();
