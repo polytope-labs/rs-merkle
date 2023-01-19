@@ -95,3 +95,7 @@ pub fn proof_indices_by_layers(
 pub fn div_ceil(x: usize, y: usize) -> usize {
     x / y + if x % y != 0 { 1 } else { 0 }
 }
+
+pub fn div_floor(x: usize, y: usize) -> usize {
+    x / y
+}
