@@ -3,7 +3,7 @@ mod common;
 pub mod root {
     use crate::common;
     use rayon::prelude::*;
-    use rs_merkle::{algorithms::Sha256, Error, Hasher, MerkleTree};
+    use rs_merkle::{algorithms::Sha256, Error, MerkleTree};
     use std::time::Instant;
 
     #[test]

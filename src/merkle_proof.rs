@@ -1,13 +1,11 @@
-use std::collections::VecDeque;
+use crate::prelude::*;
 use crate::{
     error::Error,
     partial_tree::PartialTree,
     proof_serializers::{DirectHashesOrder, MerkleProofSerializer},
     utils, Hasher,
 };
-use std::convert::TryFrom;
-use primitive_types::H256;
-use crate::utils::collections::to_hex_string;
+use core::convert::TryFrom;
 
 /// [`MerkleProof`] is used to parse, verify, calculate a root for Merkle proofs.
 ///
@@ -483,7 +481,7 @@ impl<T: Hasher> TryFrom<Vec<u8>> for MerkleProof<T> {
 
 /// Merkelize some leaves into a 2d virtual tree.
 pub fn merkelize_sorted<T: Hasher>(leaves: Vec<T::Hash>) -> Vec<Vec<T::Hash>> {
-    let mut leaves = leaves.into_iter().map(|l| T::hash(l.as_ref())).collect::<Vec<_>>();
+    let leaves = leaves.into_iter().map(|l| T::hash(l.as_ref())).collect::<Vec<_>>();
     let mut layers = vec![leaves];
 
     let mut i = 1;

@@ -21,7 +21,7 @@ pub fn calculate_root(proof: Vec<Vec<(usize, [u8; 32])>>) -> [u8; 32] {
                 previous_layer.push((div_floor(node.0, 2), node.1));
             } else {
                 let mut concat = vec![];
-                let mut left = current_layer[index].clone();
+                let left = current_layer[index].clone();
                 let right = current_layer[index + 1].clone();
                 concat.extend(&left.1);
                 concat.extend(&right.1);
@@ -55,7 +55,7 @@ pub fn calculate_root_sorted(proof: Vec<Vec<(usize, [u8; 32])>>) -> [u8; 32] {
                 previous_layer.push((div_floor(node.0, 2), node.1));
             } else {
                 let mut concat = vec![];
-                let mut left = current_layer[index].clone();
+                let left = current_layer[index].clone();
                 let right = current_layer[index + 1].clone();
                 if left.1 < right.1 {
                     concat.extend(&left.1);
@@ -82,7 +82,6 @@ pub mod root {
     use tiny_keccak::keccak256;
     use crate::{calculate_root, calculate_root_sorted, common};
     use rs_merkle::{algorithms::Sha256, Hasher, merkelize_sorted, merkle_proof_2d_sorted, MerkleTree};
-    use rs_merkle::utils::indices::tree_depth;
 
     #[derive(Clone)]
     struct Keccak256;
@@ -98,7 +97,7 @@ pub mod root {
 
     #[test]
     fn test_addresses() {
-        let testAddresses = [
+        let test_addresses = [
             "9aF1Ca5941148eB6A3e9b9C741b69738292C533f",
             "DD6ca953fddA25c496165D9040F7F77f75B75002",
             "60e9C47B64Bc1C7C906E891255EaEC19123E7F42",
@@ -268,7 +267,7 @@ pub mod root {
             "c26B34D375533fFc4c5276282Fa5D660F3d8cbcB",
         ];
 
-        let leaf_hashes = testAddresses.iter().map(|h| keccak256(&hex::decode(h).unwrap())).collect::<Vec<[u8; 32]>>();
+        let leaf_hashes = test_addresses.iter().map(|h| keccak256(&hex::decode(h).unwrap())).collect::<Vec<[u8; 32]>>();
 
 
         {
@@ -289,8 +288,8 @@ pub mod root {
             let tree = merkelize_sorted::<Keccak256>(leaf_hashes.clone());
             let mut proof = merkle_proof_2d_sorted::<Keccak256>(leaf_hashes.clone(), indices.clone());
 
-            let mut leaf_hashes = leaf_hashes.clone().into_iter().map(|h| keccak256(h.as_ref())).collect::<Vec<_>>();
-            let mut leaves = indices.into_iter().map(|i| (i, leaf_hashes[i].clone())).collect::<Vec<_>>();
+            let leaf_hashes = leaf_hashes.clone().into_iter().map(|h| keccak256(h.as_ref())).collect::<Vec<_>>();
+            let leaves = indices.into_iter().map(|i| (i, leaf_hashes[i].clone())).collect::<Vec<_>>();
             let mut base = vec![];
             base.extend(leaves);
             base.extend(proof[0].clone());
@@ -355,7 +354,7 @@ pub mod proof {
 
 pub mod commit {
     use crate::common;
-    use rs_merkle::{algorithms::Sha256, Error, Hasher, MerkleTree};
+    use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
     #[test]
     pub fn should_give_correct_root_after_commit() {
@@ -485,7 +484,6 @@ pub mod commit {
 }
 
 pub mod rollback {
-    use crate::common;
     use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
 
     #[test]
