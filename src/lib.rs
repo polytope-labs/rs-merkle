@@ -130,7 +130,7 @@
 pub use error::Error;
 pub use error::ErrorKind;
 pub use hasher::Hasher;
-pub use merkle_proof::MerkleProof;
+pub use merkle_proof::{MerkleProof, merkle_proof_2d_sorted, merkelize_sorted};
 pub use merkle_tree::MerkleTree;
 pub use partial_tree::PartialTree;
 pub use proof_serializers::MerkleProofSerializer;

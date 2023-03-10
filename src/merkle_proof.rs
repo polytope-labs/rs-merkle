@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use crate::{
     error::Error,
     partial_tree::PartialTree,
@@ -5,6 +6,8 @@ use crate::{
     utils, Hasher,
 };
 use std::convert::TryFrom;
+use primitive_types::H256;
+use crate::utils::collections::to_hex_string;
 
 /// [`MerkleProof`] is used to parse, verify, calculate a root for Merkle proofs.
 ///
@@ -476,6 +479,72 @@ impl<T: Hasher> TryFrom<Vec<u8>> for MerkleProof<T> {
     fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
         MerkleProof::from_bytes(&bytes)
     }
+}
+
+/// Merkelize some leaves into a 2d virtual tree.
+pub fn merkelize_sorted<T: Hasher>(leaves: Vec<T::Hash>) -> Vec<Vec<T::Hash>> {
+    let mut leaves = leaves.into_iter().map(|l| T::hash(l.as_ref())).collect::<Vec<_>>();
+    let mut layers = vec![leaves];
+
+    let mut i = 1;
+    loop {
+        let previous_layer = layers[i - 1].clone();
+        if previous_layer.len() == 1 {
+            break;
+        }
+        i += 1;
+        let mut current_layer = Vec::new();
+
+        for j in (0..previous_layer.len()).step_by(2) {
+            if previous_layer.len() == j + 1 {
+                current_layer.push(previous_layer[j]);
+            } else {
+                let mut buf = vec![];
+                let a = &previous_layer[j];
+                let b = &previous_layer[j + 1];
+                if a < b {
+                    buf.extend(a.as_ref());
+                    buf.extend(b.as_ref());
+                } else {
+                    buf.extend(b.as_ref());
+                    buf.extend(a.as_ref());
+                };
+                current_layer.push(T::hash(&buf));
+            }
+        }
+
+
+        layers.push(current_layer);
+    };
+
+    layers
+}
+
+
+/// 2D merkle proof for sorted nodes with no k-index.
+pub fn merkle_proof_2d_sorted<T: Hasher>(leaves: Vec<T::Hash>, indices: Vec<usize>) -> Vec<Vec<(usize, T::Hash)>> {
+    let layers = merkelize_sorted::<T>(leaves);
+
+    let mut current_layer_indices = indices;
+    let mut helper_nodes = Vec::new();
+
+    for layer in layers {
+        let mut helpers_layer = Vec::new();
+        let siblings = utils::indices::sibling_indices(&current_layer_indices);
+        // Filter all nodes that do not require an additional hash to be calculated
+        let helper_indices = utils::collections::difference(&siblings, &current_layer_indices);
+
+        for index in helper_indices {
+            if index < layer.len() {
+                helpers_layer.push((index, layer[index]));
+            }
+        }
+
+        helper_nodes.push(helpers_layer);
+        current_layer_indices = utils::indices::parent_indices(&current_layer_indices);
+    }
+
+    helper_nodes
 }
 
 impl<T: Hasher> TryFrom<&[u8]> for MerkleProof<T> {

@@ -32,16 +32,57 @@ pub fn calculate_root(proof: Vec<Vec<(usize, [u8; 32])>>) -> [u8; 32] {
         }
     }
 
-    debug_assert!(previous_layer.len(), 1);
+    debug_assert_eq!(previous_layer.len(), 1);
+
+    previous_layer[0].1
+}
+
+pub fn calculate_root_sorted(proof: Vec<Vec<(usize, [u8; 32])>>) -> [u8; 32] {
+    let mut previous_layer = vec![];
+    for  layer in proof {
+        let mut current_layer = vec![];
+        if previous_layer.len() == 0 {
+            current_layer = layer;
+        } else {
+            current_layer.extend(previous_layer.drain(..));
+            current_layer.extend(&layer);
+            current_layer.sort_by(|(a_i, _), (b_i, _)| a_i.cmp(b_i));
+        }
+
+        for index in (0..current_layer.len()).step_by(2) {
+            if index + 1 >= current_layer.len() {
+                let node = current_layer[index].clone();
+                previous_layer.push((div_floor(node.0, 2), node.1));
+            } else {
+                let mut concat = vec![];
+                let mut left = current_layer[index].clone();
+                let right = current_layer[index + 1].clone();
+                if left.1 < right.1 {
+                    concat.extend(&left.1);
+                    concat.extend(&right.1);
+                } else {
+                    concat.extend(&right.1);
+                    concat.extend(&left.1);
+                }
+
+                let hash = keccak256(&concat);
+
+                previous_layer.push((div_floor(left.0, 2), hash));
+            }
+        }
+    }
+
+    debug_assert_eq!(previous_layer.len(), 1);
 
     previous_layer[0].1
 }
 
 pub mod root {
+    use primitive_types::H256;
     use tiny_keccak::keccak256;
-    use crate::{calculate_root, common};
-    use rs_merkle::{algorithms::Sha256, Hasher, MerkleTree};
-    use rs_merkle::utils::indices::{div_ceil, div_floor, tree_depth};
+    use crate::{calculate_root, calculate_root_sorted, common};
+    use rs_merkle::{algorithms::Sha256, Hasher, merkelize_sorted, merkle_proof_2d_sorted, MerkleTree};
+    use rs_merkle::utils::indices::tree_depth;
 
     #[derive(Clone)]
     struct Keccak256;
@@ -229,19 +270,36 @@ pub mod root {
 
         let leaf_hashes = testAddresses.iter().map(|h| keccak256(&hex::decode(h).unwrap())).collect::<Vec<[u8; 32]>>();
 
-        dbg!(tree_depth(leaf_hashes.len()));
 
-        let tree = MerkleTree::<Keccak256>::from_leaves(&leaf_hashes);
+        {
 
-        println!("\n\n{:?}\n\n", tree.root_hex());
+            let tree = MerkleTree::<Keccak256>::from_leaves(&leaf_hashes);
 
-        let proof = tree.proof_2d(&[0, 2, 5, 9]);
-        let calculated = calculate_root(proof);
+            let indices = vec![0, 2, 5, 9];
+            let mut proof = tree.proof_2d(&indices);
+            proof[0].extend(indices.into_iter().map(|i| (i, leaf_hashes[i].clone())));
+            proof[0].sort_by(|(a_i, _), (b_i, _)| a_i.cmp(b_i));
+            let calculated = calculate_root(proof);
 
-        println!("\n\n{:?}\n\n", hex::encode(&calculated));
+            assert_eq!(calculated, tree.root().unwrap());
+        }
 
-        assert_eq!(calculated, tree.root().unwrap());
+        {
+            let indices = vec![0, 2, 5, 9];
+            let tree = merkelize_sorted::<Keccak256>(leaf_hashes.clone());
+            let mut proof = merkle_proof_2d_sorted::<Keccak256>(leaf_hashes.clone(), indices.clone());
 
+            let mut leaf_hashes = leaf_hashes.clone().into_iter().map(|h| keccak256(h.as_ref())).collect::<Vec<_>>();
+            let mut leaves = indices.into_iter().map(|i| (i, leaf_hashes[i].clone())).collect::<Vec<_>>();
+            let mut base = vec![];
+            base.extend(leaves);
+            base.extend(proof[0].clone());
+            base.sort_by(|(a_i, _), (b_i, _)| a_i.cmp(b_i));
+            proof[0] = base;
+            let calculated = H256(calculate_root_sorted(proof));
+            let root = H256::from_slice(tree.last().unwrap().last().unwrap().as_ref());
+            assert_eq!(root, calculated);
+        }
     }
 
     #[test]
@@ -256,6 +314,7 @@ pub mod root {
         );
     }
 }
+
 
 pub mod tree_depth {
     use crate::common;
