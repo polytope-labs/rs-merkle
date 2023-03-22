@@ -288,7 +288,6 @@ pub mod root {
             let tree = merkelize_sorted::<Keccak256>(leaf_hashes.clone());
             let mut proof = merkle_proof_2d_sorted::<Keccak256>(leaf_hashes.clone(), indices.clone());
 
-            let leaf_hashes = leaf_hashes.clone().into_iter().map(|h| keccak256(h.as_ref())).collect::<Vec<_>>();
             let leaves = indices.into_iter().map(|i| (i, leaf_hashes[i].clone())).collect::<Vec<_>>();
             let mut base = vec![];
             base.extend(leaves);

@@ -481,7 +481,6 @@ impl<T: Hasher> TryFrom<Vec<u8>> for MerkleProof<T> {
 
 /// Merkelize some leaves into a 2d virtual tree.
 pub fn merkelize_sorted<T: Hasher>(leaves: Vec<T::Hash>) -> Vec<Vec<T::Hash>> {
-    let leaves = leaves.into_iter().map(|l| T::hash(l.as_ref())).collect::<Vec<_>>();
     let mut layers = vec![leaves];
 
     let mut i = 1;
