@@ -21,6 +21,8 @@ pub enum ErrorKind {
     HashConversionError,
     NotEnoughHashesToCalculateRoot,
     LeavesIndicesCountMismatch,
+    DuplicateLeafIndex,
+    LeafIndexOutOfBounds,
 }
 
 /// The error type for tree traversals/parsing errors of the [`MerkleProof`] and [`PartialTree`].
@@ -68,6 +70,23 @@ impl Error {
         Self::new(
             ErrorKind::NotEnoughHashesToCalculateRoot,
             "proof doesn't contain enough data to extract the root".to_string(),
+        )
+    }
+
+    pub fn leaf_index_out_of_bounds(total_leaves: usize) -> Self {
+        Self::new(
+            ErrorKind::LeafIndexOutOfBounds,
+            format!(
+                "leaf index is out of bounds, total leaves count is {}",
+                total_leaves
+            ),
+        )
+    }
+
+    pub fn duplicate_leaf_index() -> Self {
+        Self::new(
+            ErrorKind::DuplicateLeafIndex,
+            String::from("leaf indices contain duplicates"),
         )
     }
 

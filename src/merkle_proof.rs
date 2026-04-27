@@ -211,6 +211,20 @@ impl<T: Hasher> MerkleProof<T> {
                 leaf_hashes.len(),
             ));
         }
+
+        // Reject indices that fall outside the leaf range.
+        if leaf_indices.iter().any(|&i| i >= total_leaves_count) {
+            return Err(Error::leaf_index_out_of_bounds(total_leaves_count));
+        }
+
+        // Check for duplicate indices to prevent a fake leaf from being
+        // silently ignored when it shares an index with a real one.
+        let mut seen = leaf_indices.to_vec();
+        seen.sort_unstable();
+        if seen.windows(2).any(|w| w[0] == w[1]) {
+            return Err(Error::duplicate_leaf_index());
+        }
+
         let tree_depth = utils::indices::tree_depth(total_leaves_count);
 
         // Zipping indices and hashes into a vector of (original_index_in_tree, leaf_hash)
